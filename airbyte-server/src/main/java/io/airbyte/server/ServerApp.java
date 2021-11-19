@@ -311,7 +311,7 @@ public class ServerApp implements ServerRunnable {
       final boolean isKubernetes = configs.getWorkerEnvironment() == WorkerEnvironment.KUBERNETES;
       final boolean versionSupportsAutoMigrate = airbyteDatabaseVersion.get().greaterThanOrEqualTo(KUBE_SUPPORT_FOR_AUTOMATIC_MIGRATION);
       if (!isKubernetes || versionSupportsAutoMigrate) {
-        runAutomaticMigration(configRepository, jobPersistence, seed, specFetcher, airbyteVersion, airbyteDatabaseVersion.get());
+        runAutomaticMigration(configRepository, jobPersistence, seed, airbyteVersion, airbyteDatabaseVersion.get());
         // After migration, upgrade the DB version
         airbyteDatabaseVersion = jobPersistence.getVersion().map(AirbyteVersion::new);
       } else {
@@ -333,7 +333,6 @@ public class ServerApp implements ServerRunnable {
   private static void runAutomaticMigration(final ConfigRepository configRepository,
                                             final JobPersistence jobPersistence,
                                             final ConfigPersistence seed,
-                                            final SpecFetcher specFetcher,
                                             final AirbyteVersion airbyteVersion,
                                             final AirbyteVersion airbyteDatabaseVersion) {
     LOGGER.info("Running Automatic Migration from version : " + airbyteDatabaseVersion.serialize() + " to version : " + airbyteVersion.serialize());
@@ -341,8 +340,7 @@ public class ServerApp implements ServerRunnable {
         jobPersistence,
         configRepository,
         airbyteVersion,
-        seed,
-        specFetcher)) {
+        seed)) {
       runMigration.run();
     } catch (final Exception e) {
       LOGGER.error("Automatic Migration failed ", e);
