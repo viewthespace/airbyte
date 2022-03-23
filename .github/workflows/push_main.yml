@@ -16,7 +16,7 @@ jobs:
     name: branch_name
     runs-on: ubuntu-latest
     outputs:
-      IMAGE_TAG: '${{ steps.image_tag.outputs.IMAGE_TAG }}'
+      IMAGE_TAG: "${{ steps.image_tag.outputs.IMAGE_TAG }}"
     steps:
       - name: Set branch name
         uses: nelonoel/branch-name@v1.0.1
@@ -32,16 +32,16 @@ jobs:
     name: ecr_login
     runs-on: ubuntu-latest
     outputs:
-      ECR_PASSWORD: '${{ steps.ecr_login_pwd.outputs.ECR_PASSWORD }}'
+      ECR_PASSWORD: "${{ steps.ecr_login_pwd.outputs.ECR_PASSWORD }}"
 
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: '${{ secrets.AWS_ACCESS_KEY_ID }}'
-          aws-secret-access-key: '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+          aws-access-key-id: "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws-secret-access-key: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           aws-region: us-east-2
-          role-to-assume: 'arn:aws:iam::856154240248:role/PlatformAdmin'
+          role-to-assume: "arn:aws:iam::856154240248:role/PlatformAdmin"
           role-duration-seconds: 1200
           role-skip-session-tagging: true
 
@@ -117,6 +117,7 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
       GH_USERNAME: ${{ secrets.GH_USERNAME }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
