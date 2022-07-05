@@ -72,6 +72,16 @@ spec:
             secretKeyRef:
               name: {{ include "common.names.fullname" . }}-secrets
               key: DATABASE_USER
+        - name: KUBERNETES_AUTH_TRYSERVICEACCOUNT
+            valueFrom:
+              configMapKeyRef:
+                name: airbyte-env
+                key: KUBERNETES_AUTH_TRYSERVICEACCOUNT
+        - name: KUBERNETES_AUTH_TRYKUBECONFIG
+          valueFrom:
+            configMapKeyRef:
+              name: airbyte-env
+              key: KUBERNETES_AUTH_TRYKUBECONFIG
         - name: TRACKING_STRATEGY
           valueFrom:
             configMapKeyRef:
