@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+# Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
 
 from dataclasses import dataclass
@@ -18,7 +18,7 @@ class FileInfo:
 
     @property
     def size_in_megabytes(self) -> float:
-        return self.size / 1024 ** 2
+        return self.size / 1024**2
 
     def __str__(self) -> str:
         return "Key: %s, LastModified: %s, Size: %.4fMb" % (self.key, self.last_modified.isoformat(), self.size_in_megabytes)
