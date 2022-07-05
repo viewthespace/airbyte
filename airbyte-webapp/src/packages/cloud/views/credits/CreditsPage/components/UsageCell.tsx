@@ -1,30 +1,15 @@
 import React from "react";
 import styled from "styled-components";
 
-type ConnectionCellProps = {
-  value: number;
+interface ConnectionCellProps {
   percent: number;
-};
-
-const Content = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const Value = styled.div`
-  padding-right: 10px;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 17px;
-  flex: 1 0 0;
-  min-width: 50px;
-`;
+}
 
 const Bar = styled.div`
   height: 10px;
   width: 100%;
-  background: ${({ theme }) => theme.greyColor20};
+  min-width: 150px;
+  background: ${({ theme }) => theme.grey100};
   flex: 10 0 0;
   overflow: hidden;
   border-radius: 0 4px 4px 0;
@@ -33,19 +18,13 @@ const Bar = styled.div`
 const Full = styled.div<{ percent: number }>`
   height: 100%;
   width: ${({ percent }) => percent}%;
-  background: ${({ theme }) => theme.lightTextColor};
-  opacity: 0.5;
+  background: ${({ theme }) => theme.grey500};
 `;
 
-const UsageCell: React.FC<ConnectionCellProps> = ({ value, percent }) => {
-  return (
-    <Content>
-      <Value>{value}</Value>
-      <Bar>
-        <Full percent={percent} />
-      </Bar>
-    </Content>
-  );
-};
+const UsageCell: React.FC<ConnectionCellProps> = ({ percent }) => (
+  <Bar>
+    <Full percent={percent} />
+  </Bar>
+);
 
 export default UsageCell;

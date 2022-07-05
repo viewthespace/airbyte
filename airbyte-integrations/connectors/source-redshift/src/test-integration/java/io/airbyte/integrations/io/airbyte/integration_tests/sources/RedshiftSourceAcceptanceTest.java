@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+ * Copyright (c) 2022 Airbyte, Inc., all rights reserved.
  */
 
 package io.airbyte.integrations.io.airbyte.integration_tests.sources;
@@ -12,7 +12,9 @@ import io.airbyte.commons.io.IOs;
 import io.airbyte.commons.json.Jsons;
 import io.airbyte.commons.resources.MoreResources;
 import io.airbyte.commons.string.Strings;
-import io.airbyte.db.Databases;
+import io.airbyte.db.factory.DataSourceFactory;
+import io.airbyte.db.factory.DatabaseDriver;
+import io.airbyte.db.jdbc.DefaultJdbcDatabase;
 import io.airbyte.db.jdbc.JdbcDatabase;
 import io.airbyte.db.jdbc.JdbcUtils;
 import io.airbyte.integrations.source.redshift.RedshiftSource;
@@ -40,6 +42,8 @@ public class RedshiftSourceAcceptanceTest extends SourceAcceptanceTest {
   // This test case expects an active redshift cluster that is useable from outside of vpc
   protected ObjectNode config;
   protected JdbcDatabase database;
+  protected String testUserName;
+  protected String testUserPassword;
   protected String schemaName;
   protected String schemaToIgnore;
   protected String streamName;
@@ -53,41 +57,65 @@ public class RedshiftSourceAcceptanceTest extends SourceAcceptanceTest {
     config = getStaticConfig();
 
     database = createDatabase(config);
-
+    testUserName = "foo";
+    testUserPassword = "BarBarBar1&";
+    createTestUser(database, config, testUserName, testUserPassword);
     schemaName = Strings.addRandomSuffix("integration_test", "_", 5).toLowerCase();
     schemaToIgnore = schemaName + "shouldIgnore";
+    streamName = "customer";
 
     // limit the connection to one schema only
     config = config.set("schemas", Jsons.jsonNode(List.of(schemaName)));
 
+    // use test user user
+    config = config.set("username", Jsons.jsonNode(testUserName));
+    config = config.set("password", Jsons.jsonNode(testUserPassword));
+
     // create a test data
-    createTestData(database, schemaName);
+    createTestData(database, schemaName, streamName, testUserName, true);
+    createTestData(database, schemaName, "not_readable", testUserName, false);
 
     // create a schema with data that will not be used for testing, but would be used to check schema
     // filtering. This one should not be visible in results
-    createTestData(database, schemaToIgnore);
+    createTestData(database, schemaToIgnore, streamName, testUserName, true);
   }
 
-  protected static JdbcDatabase createDatabase(final JsonNode config) {
-    return Databases.createJdbcDatabase(
-        config.get("username").asText(),
-        config.get("password").asText(),
-        String.format("jdbc:redshift://%s:%s/%s",
-            config.get("host").asText(),
-            config.get("port").asText(),
-            config.get("database").asText()),
-        RedshiftSource.DRIVER_CLASS);
+  protected JdbcDatabase createDatabase(final JsonNode config) {
+    return new DefaultJdbcDatabase(
+        DataSourceFactory.create(
+            config.get("username").asText(),
+            config.get("password").asText(),
+            RedshiftSource.DRIVER_CLASS,
+            String.format(DatabaseDriver.REDSHIFT.getUrlFormatString(),
+                config.get("host").asText(),
+                config.get("port").asInt(),
+                config.get("database").asText())));
   }
 
-  protected void createTestData(final JdbcDatabase database, final String schemaName)
+  protected void createTestUser(final JdbcDatabase database, final JsonNode config, final String testUserName, final String testUserPassword)
       throws SQLException {
-    final String createSchemaQuery = String.format("CREATE SCHEMA %s", schemaName);
+    final String createTestUserQuery = String.format("CREATE USER %s PASSWORD '%s'", testUserName, testUserPassword);
+    database.execute(connection -> {
+      connection.createStatement().execute(createTestUserQuery);
+    });
+    final String grantSelectOnPgTablesQuery = String.format("GRANT SELECT ON TABLE pg_tables TO %s ", testUserName);
+    database.execute(connection -> {
+      connection.createStatement().execute(grantSelectOnPgTablesQuery);
+    });
+  }
+
+  protected void createTestData(final JdbcDatabase database,
+                                final String schemaName,
+                                final String tableName,
+                                final String testUserName,
+                                final Boolean isReadableByTestUser)
+      throws SQLException {
+    final String createSchemaQuery = String.format("CREATE SCHEMA IF NOT EXISTS %s", schemaName);
     database.execute(connection -> {
       connection.createStatement().execute(createSchemaQuery);
     });
 
-    streamName = "customer";
-    final String fqTableName = JdbcUtils.getFullyQualifiedTableName(schemaName, streamName);
+    final String fqTableName = JdbcUtils.getFullyQualifiedTableName(schemaName, tableName);
     final String createTestTable =
         String.format(
             "CREATE TABLE IF NOT EXISTS %s (c_custkey INTEGER, c_name VARCHAR(16), c_nation VARCHAR(16));\n",
@@ -101,6 +129,22 @@ public class RedshiftSourceAcceptanceTest extends SourceAcceptanceTest {
     database.execute(connection -> {
       connection.createStatement().execute(insertTestData);
     });
+
+    if (!isReadableByTestUser) {
+      final String revokeSelect = String.format("REVOKE SELECT ON TABLE %s FROM %s;\n", fqTableName, testUserName);
+      database.execute(connection -> {
+        connection.createStatement().execute(revokeSelect);
+      });
+    } else {
+      final String grantUsageQuery = String.format("GRANT USAGE ON SCHEMA %s TO %s;\n", schemaName, testUserName);
+      database.execute(connection -> {
+        connection.createStatement().execute(grantUsageQuery);
+      });
+      final String grantSelectQuery = String.format("GRANT SELECT ON TABLE %s TO %s;\n", fqTableName, testUserName);
+      database.execute(connection -> {
+        connection.createStatement().execute(grantSelectQuery);
+      });
+    }
   }
 
   @Override
@@ -109,6 +153,10 @@ public class RedshiftSourceAcceptanceTest extends SourceAcceptanceTest {
         .execute(String.format("DROP SCHEMA IF EXISTS %s CASCADE", schemaName)));
     database.execute(connection -> connection.createStatement()
         .execute(String.format("DROP SCHEMA IF EXISTS %s CASCADE", schemaToIgnore)));
+    database.execute(connection -> connection.createStatement()
+        .execute(String.format("REVOKE SELECT ON table pg_tables FROM %s", testUserName)));
+    database.execute(connection -> connection.createStatement()
+        .execute(String.format("DROP USER IF EXISTS %s", testUserName)));
   }
 
   @Override

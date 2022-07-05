@@ -1,15 +1,18 @@
+import { faCog } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import React from "react";
 import styled from "styled-components";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCog } from "@fortawesome/free-solid-svg-icons";
 
-import { RoutePaths } from "pages/routes";
-import { useCurrentWorkspace } from "hooks/services/useWorkspace";
 import { Link } from "components";
 
-type IProps = {
+import { useCurrentWorkspace } from "hooks/services/useWorkspace";
+import { ConnectionSettingsRoutes } from "pages/ConnectionPage/pages/ConnectionItemPage/ConnectionSettingsRoutes";
+
+import { RoutePaths } from "../../../pages/routePaths";
+
+interface IProps {
   id: string;
-};
+}
 
 const Content = styled.div`
   color: ${({ theme }) => theme.greyColor60};
@@ -36,7 +39,7 @@ const ConnectorCell: React.FC<IProps> = ({ id }) => {
     event.stopPropagation();
   };
 
-  const settingPath = `/${RoutePaths.Workspaces}/${workspaceId}/${RoutePaths.Connections}/${id}/${RoutePaths.Settings}`;
+  const settingPath = `/${RoutePaths.Workspaces}/${workspaceId}/${RoutePaths.Connections}/${id}/${ConnectionSettingsRoutes.REPLICATION}`;
   return (
     <Content onClick={openSettings}>
       <Link to={settingPath}>

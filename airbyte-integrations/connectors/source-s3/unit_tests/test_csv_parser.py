@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+# Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
 
 import json
@@ -84,12 +84,12 @@ def generate_big_file(filepath: str, size_in_gigabytes: float, columns_number: i
 
     with open(filepath, "ab") as f:
         while True:
-            file_size = os.stat(filepath).st_size / (1024 ** 3)
+            file_size = os.stat(filepath).st_size / (1024**3)
             if file_size > size_in_gigabytes:
                 break
             with open(temp_files[0], "rb") as tf:  # type: ignore[assignment]
                 with open(temp_files[1], "wb") as tf2:
-                    buf = tf.read(50 * 1024 ** 2)  # by 50Mb
+                    buf = tf.read(50 * 1024**2)  # by 50Mb
                     if buf:
                         f.write(buf)  # type: ignore[arg-type]
                         tf2.write(buf)  # type: ignore[arg-type]
@@ -331,6 +331,33 @@ class TestCsvParser(AbstractTestParser):
                 "line_checks": {},
                 "fails": ["test_get_inferred_schema", "test_stream_records"],
             },
+            "empty_advanced_options": {
+                "AbstractFileParser": CsvParser(
+                    format={"filetype": "csv", "advanced_options": ""},
+                    master_schema={
+                        "id": "integer",
+                        "name": "string",
+                        "valid": "boolean",
+                        "code": "integer",
+                        "degrees": "number",
+                        "birthday": "string",
+                        "last_seen": "string",
+                    },
+                ),
+                "filepath": os.path.join(SAMPLE_DIRECTORY, "csv/test_file_1.csv"),
+                "num_records": 8,
+                "inferred_schema": {
+                    "id": "integer",
+                    "name": "string",
+                    "valid": "boolean",
+                    "code": "integer",
+                    "degrees": "number",
+                    "birthday": "string",
+                    "last_seen": "string",
+                },
+                "line_checks": {},
+                "fails": [],
+            },
             "no_header_csv_file": {
                 # no header test
                 "AbstractFileParser": CsvParser(
@@ -368,7 +395,7 @@ class TestCsvParser(AbstractTestParser):
         self.logger.info(f"generated file {filepath} with size {file_size}Gb, lines: {expected_count}")
         for _ in range(3):
             parser = CsvParser(
-                format={"filetype": self.filetype, "block_size": 5 * 1024 ** 2},
+                format={"filetype": self.filetype, "block_size": 5 * 1024**2},
                 master_schema=schema,
             )
             expected_file = open(filepath, "r")
